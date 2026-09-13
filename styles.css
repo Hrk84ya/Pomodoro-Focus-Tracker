@@ -1,0 +1,491 @@
+/*
+ * Pomodoro Focus Tracker — "Warm dark & metallic" theme.
+ *
+ * Deep charcoal surfaces, brushed-metal card, warm amber/brass/gold accents.
+ * The JS contract is preserved: #period-label carries data-period
+ * (focus | short_break | long_break), the four settings inputs toggle
+ * :disabled while running, and src/view.js adds the "completion-cue" class to
+ * <body> for a short duration when a Period reaches zero.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Base charcoals */
+  --bg-0: #12100e;          /* deepest backdrop */
+  --bg-1: #1a1714;          /* app field */
+  --surface-1: #211d19;     /* card body */
+  --surface-2: #2a251f;     /* raised elements (inputs, buttons) */
+  --surface-3: #322c25;     /* hover */
+
+  /* Text */
+  --text-1: #f3ece1;        /* primary, warm ivory */
+  --text-2: #b7ab98;        /* secondary, warm taupe */
+  --text-3: #8a7f6d;        /* muted */
+
+  /* Metal accents (no blue/purple/green) */
+  --amber: #e0a04a;         /* focus — brass/amber */
+  --amber-bright: #f2b866;
+  --copper: #c77b48;        /* short break — warm copper */
+  --gold-deep: #caa24a;     /* long break — deep gold */
+  --accent: var(--amber);
+
+  /* Hairlines & shadows */
+  --line: rgba(224, 160, 74, 0.16);
+  --line-soft: rgba(243, 236, 225, 0.07);
+  --shadow-lg: 0 24px 60px -20px rgba(0, 0, 0, 0.75), 0 8px 24px -12px rgba(0, 0, 0, 0.55);
+  --shadow-inset: inset 0 1px 0 rgba(255, 245, 230, 0.05);
+
+  --radius: 18px;
+  --radius-sm: 11px;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: clamp(1.5rem, 5vw, 3.5rem) 1rem;
+  font-family: var(--font-ui);
+  color: var(--text-1);
+  background-color: var(--bg-0);
+  /* Warm radial glow + subtle vignette instead of a flat fill. */
+  background-image:
+    radial-gradient(120% 90% at 50% -10%, rgba(224, 160, 74, 0.12), transparent 55%),
+    radial-gradient(80% 60% at 50% 120%, rgba(199, 123, 72, 0.08), transparent 60%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.app {
+  width: 100%;
+  max-width: 27rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+/* Header --------------------------------------------------------------- */
+
+.app__header {
+  text-align: center;
+  padding-top: 0.25rem;
+}
+
+.app__mark {
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 0.85rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, var(--amber-bright), var(--amber) 45%, #7a4f1e 100%);
+  box-shadow:
+    0 0 0 1px rgba(224, 160, 74, 0.35),
+    0 0 22px -4px rgba(224, 160, 74, 0.55),
+    inset 0 1px 2px rgba(255, 240, 220, 0.6);
+}
+
+.app__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-size: 1.9rem;
+  letter-spacing: 0.01em;
+  color: var(--text-1);
+}
+
+.app__subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Shared card surface -------------------------------------------------- */
+
+.timer-card,
+.stats,
+.settings {
+  background:
+    linear-gradient(180deg, var(--surface-1), var(--bg-1));
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg), var(--shadow-inset);
+}
+
+/* Timer display -------------------------------------------------------- */
+
+.timer-card {
+  padding: 2.25rem 1.5rem 2.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* faint top sheen line */
+.timer-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line), transparent);
+}
+
+.timer-card__dial {
+  position: relative;
+  width: 16.5rem;
+  max-width: 78%;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+/* Decorative progress-style ring; color follows the current period. */
+.timer-card__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  padding: 6px;
+  background:
+    conic-gradient(from 210deg, var(--ring-accent, var(--amber)) 0deg, rgba(224, 160, 74, 0.05) 300deg 360deg);
+  -webkit-mask:
+    radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask:
+    radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  opacity: 0.9;
+  filter: drop-shadow(0 0 10px rgba(224, 160, 74, 0.25));
+  transition: background 0.5s ease, filter 0.5s ease;
+}
+
+.timer-card__face {
+  position: relative;
+  width: 82%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background:
+    radial-gradient(circle at 50% 38%, var(--surface-2), var(--bg-1) 78%);
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(243, 236, 225, 0.04);
+}
+
+.timer-card__period {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.26em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-3);
+  transition: color 0.4s ease;
+}
+
+/* Period-driven accent — set on the label, cascades to the ring via body. */
+.timer-card__period[data-period="focus"] {
+  color: var(--amber-bright);
+}
+.timer-card__period[data-period="short_break"] {
+  color: var(--copper);
+}
+.timer-card__period[data-period="long_break"] {
+  color: var(--gold-deep);
+}
+
+/* Drive the ring color from the period label using :has(). */
+.timer-card:has(.timer-card__period[data-period="focus"]) .timer-card__ring {
+  --ring-accent: var(--amber);
+}
+.timer-card:has(.timer-card__period[data-period="short_break"]) .timer-card__ring {
+  --ring-accent: var(--copper);
+}
+.timer-card:has(.timer-card__period[data-period="long_break"]) .timer-card__ring {
+  --ring-accent: var(--gold-deep);
+}
+
+.timer-card__time {
+  margin: 0;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: clamp(3.4rem, 16vw, 4.6rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--text-1);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Controls ------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  gap: 0.7rem;
+  justify-content: center;
+}
+
+.controls__btn {
+  flex: 1;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: 0.83rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--shadow-inset), 0 6px 16px -12px rgba(0, 0, 0, 0.8);
+  transition: transform 0.12s ease, color 0.2s ease, border-color 0.2s ease,
+    background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.controls__btn:hover {
+  color: var(--text-1);
+  border-color: var(--line);
+  background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+}
+
+.controls__btn:active {
+  transform: translateY(1px);
+}
+
+/* Start is the primary, metallic action. */
+.controls__btn--start {
+  color: #2a1c0a;
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--amber-bright), var(--amber) 55%, #b9812f);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 225, 0.65),
+    0 8px 22px -10px rgba(224, 160, 74, 0.7);
+}
+
+.controls__btn--start:hover {
+  color: #241705;
+  background: linear-gradient(180deg, #f6c37b, var(--amber-bright) 55%, #c4882f);
+}
+
+.controls__btn:focus-visible {
+  outline: 2px solid var(--amber-bright);
+  outline-offset: 3px;
+}
+
+.controls__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Stats ---------------------------------------------------------------- */
+
+.stats {
+  display: flex;
+  align-items: stretch;
+  padding: 1.1rem 1rem;
+}
+
+.stats__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+}
+
+.stats__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.2rem 0;
+  background: linear-gradient(180deg, transparent, var(--line-soft), transparent);
+}
+
+.stats__label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.stats__value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+
+/* Settings ------------------------------------------------------------- */
+
+.settings {
+  padding: 1.4rem 1.35rem 1.5rem;
+}
+
+.settings__heading {
+  margin: 0 0 1.15rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.settings__heading::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line-soft), transparent);
+}
+
+.settings__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem 0.85rem;
+}
+
+.settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.settings__field label {
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.settings__unit {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.settings__input {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+  background: var(--bg-1);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.settings__input:hover:not(:disabled) {
+  border-color: var(--line);
+}
+
+.settings__input:focus-visible {
+  outline: none;
+  border-color: var(--amber);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 0 0 3px rgba(224, 160, 74, 0.2);
+}
+
+.settings__input:disabled {
+  opacity: 0.5;
+  color: var(--text-3);
+  cursor: not-allowed;
+}
+
+.settings__message {
+  grid-column: 1 / -1;
+  margin: 0.9rem 0 0;
+  min-height: 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--copper);
+}
+
+.settings__message:empty {
+  margin-top: 0;
+  min-height: 0;
+}
+
+/* Completion cue ------------------------------------------------------- */
+
+/*
+ * Visual completion cue. src/view.js toggles this exact class name on <body>
+ * for a short duration when a Period reaches zero (Req 5.1). A warm gold pulse
+ * (glow + gentle lift) instead of a jarring background flash.
+ */
+.completion-cue {
+  animation: completion-flash 0.6s ease-in-out;
+}
+
+@keyframes completion-flash {
+  0% {
+    background-color: var(--bg-0);
+    box-shadow: none;
+  }
+  35% {
+    background-color: #1f1913;
+    box-shadow: inset 0 0 220px 40px rgba(224, 160, 74, 0.22);
+  }
+  100% {
+    background-color: var(--bg-0);
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completion-cue {
+    animation: none;
+    box-shadow: inset 0 0 220px 40px rgba(224, 160, 74, 0.22);
+  }
+  .timer-card__ring {
+    transition: none;
+  }
+}
+
+/* Responsive ----------------------------------------------------------- */
+
+@media (max-width: 26rem) {
+  .settings__form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 22rem) {
+  .stats {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .stats__divider {
+    width: auto;
+    height: 1px;
+    margin: 0 0.5rem;
+    background: linear-gradient(90deg, transparent, var(--line-soft), transparent);
+  }
+}
