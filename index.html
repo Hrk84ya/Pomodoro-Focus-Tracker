@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pomodoro Focus Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="app" class="app">
+      <header class="app__header">
+        <span class="app__mark" aria-hidden="true"></span>
+        <h1 class="app__title">Pomodoro</h1>
+        <p class="app__subtitle">Focus Tracker</p>
+      </header>
+
+      <!-- Timer display: current period label + MM:SS remaining. -->
+      <section class="timer-card" aria-labelledby="period-label">
+        <div class="timer-card__dial">
+          <div class="timer-card__ring" aria-hidden="true"></div>
+          <div class="timer-card__face">
+            <p
+              id="period-label"
+              class="timer-card__period"
+              data-period="focus"
+              aria-live="polite"
+            >
+              Focus
+            </p>
+            <p
+              id="timer-display"
+              class="timer-card__time"
+              role="timer"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label="Time remaining"
+            >
+              25:00
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Start / Pause / Reset controls. -->
+      <section class="controls" aria-label="Timer controls">
+        <button id="start-btn" type="button" class="controls__btn controls__btn--start">
+          <span class="controls__label">Start</span>
+        </button>
+        <button id="pause-btn" type="button" class="controls__btn controls__btn--pause">
+          <span class="controls__label">Pause</span>
+        </button>
+        <button id="reset-btn" type="button" class="controls__btn controls__btn--reset">
+          <span class="controls__label">Reset</span>
+        </button>
+      </section>
+
+      <!-- Session and Total Focus Time tracking stats. -->
+      <section class="stats" aria-label="Session tracking">
+        <div class="stats__item">
+          <span class="stats__label" id="session-count-label">Sessions completed</span>
+          <span
+            id="session-count"
+            class="stats__value"
+            aria-live="polite"
+            aria-labelledby="session-count-label"
+            >0</span
+          >
+        </div>
+        <div class="stats__divider" aria-hidden="true"></div>
+        <div class="stats__item">
+          <span class="stats__label" id="total-focus-label">Total focus time</span>
+          <span
+            id="total-focus-time"
+            class="stats__value"
+            aria-live="polite"
+            aria-labelledby="total-focus-label"
+            >0h 00m</span
+          >
+        </div>
+      </section>
+
+      <!-- Settings_Panel: durations + long-break interval. -->
+      <section class="settings" aria-labelledby="settings-heading">
+        <h2 id="settings-heading" class="settings__heading">Settings</h2>
+
+        <form id="settings-form" class="settings__form">
+          <div class="settings__field">
+            <label for="focus-minutes">Focus duration <span class="settings__unit">min</span></label>
+            <input
+              id="focus-minutes"
+              name="focusMinutes"
+              class="settings__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="120"
+              step="1"
+              value="25"
+              data-field="focusMinutes"
+              aria-describedby="settings-message"
+            />
+          </div>
+
+          <div class="settings__field">
+            <label for="short-break-minutes">Short break <span class="settings__unit">min</span></label>
+            <input
+              id="short-break-minutes"
+              name="shortBreakMinutes"
+              class="settings__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="120"
+              step="1"
+              value="5"
+              data-field="shortBreakMinutes"
+              aria-describedby="settings-message"
+            />
+          </div>
+
+          <div class="settings__field">
+            <label for="long-break-minutes">Long break <span class="settings__unit">min</span></label>
+            <input
+              id="long-break-minutes"
+              name="longBreakMinutes"
+              class="settings__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="120"
+              step="1"
+              value="15"
+              data-field="longBreakMinutes"
+              aria-describedby="settings-message"
+            />
+          </div>
+
+          <div class="settings__field">
+            <label for="long-break-interval">Long-break interval <span class="settings__unit">sessions</span></label>
+            <input
+              id="long-break-interval"
+              name="longBreakInterval"
+              class="settings__input"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              max="12"
+              step="1"
+              value="4"
+              data-field="longBreakInterval"
+              aria-describedby="settings-message"
+            />
+          </div>
+        </form>
+
+        <!-- Validation / running-lock message region. -->
+        <p id="settings-message" class="settings__message" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>
